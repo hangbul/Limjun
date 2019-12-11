@@ -13,18 +13,18 @@ import title_state
 from Backgorund_objacts import Ground
 from Backgorund_objacts import Background
 from Backgorund_objacts import Frontground
+from Backgorund_objacts import Castle
 
 from UI_s import Goblin_knight_UI
 from UI_s import Goblin_spear_UI
 from UI_s import Goblin_babarian_UI
-
 from UI_s import Mouse_UI
 
 from Minions import Goblin_Knight
 from Minions import Goblin_Spear
 from Minions import Goblin_Babarian
-
 from Minions import Dwarf_worrior
+from Minions import Dwarf_babarian
 
 from Catulpult_main_char import Goblin_Doom_catulpult
 
@@ -52,13 +52,16 @@ catulpult = None
 # enemy
 E_spawn_count = 0
 enemys = []
-#castle = Enemy_castle()
+castle = None
 
 fly_path = []
 
 # ====================================================
 
+scr_w = 800
+scr_h = 600
 
+sling_p = None
 
 mouse_distance = 0
 rope_lenght = 90
@@ -71,32 +74,18 @@ BLUE = (0, 0, 255)
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 
-# vecter - gravtity
-# space = pm.Space()
-# space.gravity = (0.0, -700.0)
-
 
 mouse_pressed = False
 running = True
 Flying = False
 
-
-def to_pygame(p):
-    """Convert pymunk to pygame coordinates"""
-    return int(p.x), int(-p.y + 600)
-
-
 def vector(p0, p1):
-    """Return the vector of the points
-    p0 = (xo,yo), p1 = (x1,y1)"""
     a = p1[0] - p0[0]
     b = p1[1] - p0[1]
     return (a, b)
 
 
 def unit_vector(v):
-    """Return the unit vector of the points
-    v = (a,b)"""
     h = ((v[0] ** 2) + (v[1] ** 2)) ** 0.5
     if h == 0:
         h = 0.000000000000001
@@ -106,7 +95,6 @@ def unit_vector(v):
 
 
 def distance(xo, yo, x, y):
-    """distance between points"""
     dx = x - xo
     dy = y - yo
     d = ((dx ** 2) + (dy ** 2)) ** 0.5
@@ -118,16 +106,18 @@ def sling_action():
     global mouse_distance
     global rope_lenght
     global angle
+    global sling_p
+    sling_p = (scr_w//2 + catulpult.w/2 - 10, catulpult.h - 10)
 
     # Fixing bird to the sling rope
 
-    v = vector((catulpult.x + 50, catulpult.y + 40), (mouse.x, mouse.y))
+    v = vector((sling_p.x + 50, sling_p.y + 40), (mouse.x, mouse.y))
     uv = unit_vector(v)
     uv1 = uv[0]
     uv2 = uv[1]
-    mouse_distance = distance(catulpult.x + 50, catulpult.y + 40, mouse.x, mouse.y)
-    pu = (uv1 * rope_lenght + catulpult.x + 50, uv2 * rope_lenght + catulpult.y + 40)
-    bigger_rope = 102
+    mouse_distance = distance(sling_p.x + 50, sling_p.y + 40, mouse.x, mouse.y)
+    pu = (uv1 * rope_lenght + sling_p.x + 50, uv2 * rope_lenght + sling_p.y + 40)
+    bigger_rope = 120
     x_diver = mouse.y - 20
     y_diver = mouse.y - 20
     if mouse_distance > rope_lenght:
@@ -139,18 +129,19 @@ def sling_action():
         #pygame.draw.rect(win, (0, 0, 255), (pux, puy, 30, 30))
         draw_rectangle((pux, puy, 30, 30))
         #
-        pu2 = (uv1 * bigger_rope + catulpult.x + 60, uv2 * bigger_rope + catulpult.y + 40)
+        pu2 = (uv1 * bigger_rope + sling_p.x + 60, uv2 * bigger_rope + sling_p.y + 40)
 
         #pygame.draw.line(win, (0, 0, 0), (catulpult.x + 70, catulpult.y + 20), pu2, 5)
         #pygame.draw.rect(win, (0, 0, 255), (pux, puy, 30, 30))
         #draw_line
-        draw_rectangle((pux, puy, 30, 30))
+        draw_rectangle((pux, puy, pux + 30, puy + 30))
+
         # pygame.draw.circle(win, BLUE, (pux, puy), 12, 2)
         #pygame.draw.line(win, (0, 0, 0), (catulpult.x + 70, catulpult.y + 20), pu2, 5)
         #draw_line
     else:
         mouse_distance += 10
-        pu3 = (uv1 * mouse_distance + catulpult.x + 50, uv2 * mouse_distance + catulpult.y + 40)
+        pu3 = (uv1 * mouse_distance + sling_p.x + 50, uv2 * mouse_distance + sling_p.y + 40)
         #pygame.draw.line(win, (0, 0, 0), (catulpult.x + 70, catulpult.y + 20), pu3, 5)
         # draw_line
         # screen.blit(redbird, (x_redbird, y_redbird))
@@ -161,8 +152,8 @@ def sling_action():
         # draw_line
 
     # Angle of impulse
-    dy = mouse.y - catulpult.y - 40
-    dx = mouse.x - catulpult.x - 50
+    dy = mouse.y - sling_p.y - 40
+    dx = mouse.x - sling_p.x - 50
     if dx == 0:
         dx = 0.00000000000001
     angle = math.atan((float(dy)) / dx)
@@ -199,6 +190,11 @@ def enter():
     background.set_center_object(catulpult)
     ground.set_center_object(catulpult)
     catulpult.set_background(background)
+
+    global castle
+    castle = Castle()
+    game_world.add_object(castle, 2)
+    castle.set_center_object(catulpult)
 
     global frontground
     frontground = Frontground()
@@ -288,8 +284,12 @@ def update():
     game_run_time += 1
 
     if game_run_time % 500 == 0:
-        enemys.append(Dwarf_worrior())
-        game_world.add_object(enemys[E_spawn_count], 1)
+        if random.randint(0, 100) <= 50:
+            enemys.append(Dwarf_worrior())
+            game_world.add_object(enemys[E_spawn_count], 1)
+        else:
+            enemys.append(Dwarf_babarian())
+            game_world.add_object(enemys[E_spawn_count], 1)
         enemys[E_spawn_count].set_center_object(catulpult)
         E_spawn_count += 1
 
@@ -299,11 +299,26 @@ def update():
     for goblin in goblins:
         for enemy in enemys:
             if collide(goblin, enemy):
-                goblin.attack()
                 enemy.attack()
-            else:
-                goblin.walk()
-                enemy.walk()
+                goblin.attack()
+                if 15< enemy.frame <=15.5:
+                    goblin.Health_point -= clamp(1,enemy.AP - goblin.DF,enemy.AP)
+                if 15< goblin.frame <= 15.5:
+                    enemy.Health_point -= clamp(1,goblin.AP - enemy.DF,goblin.AP)
+                if enemy.Health_point <= 0:
+                    for goblin_q in goblins:
+                        enemy.dead()
+                        goblin_q.kill()
+                        game_world.remove_object(enemy)
+                if goblin.Health_point <= 0:
+                    for enemy_q in enemys:
+                        goblin.dead()
+                        enemy_q.kill()
+                        game_world.remove_object(goblin)
+    for enemy in enemys:
+        if collide(catulpult, enemy):
+            print("Crash")
+            #game_framework.change_state(title_state)
 
     delay(0.01)
 

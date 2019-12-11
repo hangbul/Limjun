@@ -3,7 +3,7 @@ from pico2d import *
 import game_world
 
 # Boy Run Speed
-PIXEL_PER_METER = (10.0 / 0.3)  # 10 pixel 30 cm
+PIXEL_PER_METER = (5.0 / 0.3)  # 10 pixel 30 cm
 RUN_SPEED_KMPH = 20.0  # Km / Hour
 RUN_SPEED_MPM = (RUN_SPEED_KMPH * 1000.0 / 60.0)
 RUN_SPEED_MPS = (RUN_SPEED_MPM / 60.0)
@@ -12,7 +12,7 @@ RUN_SPEED_PPS = (RUN_SPEED_MPS * PIXEL_PER_METER)
 # Boy Action Speed
 TIME_PER_ACTION = 0.5
 ACTION_PER_TIME = 1.0 / TIME_PER_ACTION
-FRAMES_PER_ACTION = 8
+FRAMES_PER_ACTION = 60
 
 # Boy Event
 RIGHT_DOWN, LEFT_DOWN, RIGHT_UP, LEFT_UP = range(4)
@@ -52,8 +52,7 @@ class IdleState:
     def draw(Goblin_Doom_catulpult):
         #cx = Goblin_Doom_catulpult.canvas_width // 2 - 20
         cx = Goblin_Doom_catulpult.x - Goblin_Doom_catulpult.bg.window_left
-        Goblin_Doom_catulpult.image.clip_draw(int(Goblin_Doom_catulpult.frame) * 123, 0, 123, 77, cx,
-                                              Goblin_Doom_catulpult.y)
+        Goblin_Doom_catulpult.image.clip_draw(int(Goblin_Doom_catulpult.frame) * Goblin_Doom_catulpult.w, 0, Goblin_Doom_catulpult.w, Goblin_Doom_catulpult.h, cx,Goblin_Doom_catulpult.y)
 
 
 class MoveState:
@@ -78,15 +77,15 @@ class MoveState:
     def do(Goblin_Doom_catulpult):
         Goblin_Doom_catulpult.frame = (Goblin_Doom_catulpult.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % FRAMES_PER_ACTION
         Goblin_Doom_catulpult.x += Goblin_Doom_catulpult.x_velocity * game_framework.frame_time
-        #Goblin_Doom_catulpult.x = clamp(Goblin_Doom_catulpult.canvas_width // 2, Goblin_Doom_catulpult.x, Goblin_Doom_catulpult.bg.w - Goblin_Doom_catulpult.canvas_width // 2)
         Goblin_Doom_catulpult.x = clamp(0, Goblin_Doom_catulpult.x, Goblin_Doom_catulpult.bg.w)
 
     @staticmethod
     def draw(Goblin_Doom_catulpult):
-        #cx = Goblin_Doom_catulpult.canvas_width // 2 - 20
         cx = Goblin_Doom_catulpult.x - Goblin_Doom_catulpult.bg.window_left
-        Goblin_Doom_catulpult.image.clip_draw(int(Goblin_Doom_catulpult.frame) * 123, 0, 123, 77, cx, Goblin_Doom_catulpult.y)
-
+        if Goblin_Doom_catulpult.dir == 1:
+            Goblin_Doom_catulpult.image.clip_draw(int(Goblin_Doom_catulpult.frame) * Goblin_Doom_catulpult.w, Goblin_Doom_catulpult.h * 1, Goblin_Doom_catulpult.w, Goblin_Doom_catulpult.h ,  cx, Goblin_Doom_catulpult.y)
+        else:
+            Goblin_Doom_catulpult.image.clip_draw(int(Goblin_Doom_catulpult.frame) * Goblin_Doom_catulpult.w, Goblin_Doom_catulpult.h * 0, Goblin_Doom_catulpult.w, Goblin_Doom_catulpult.h , cx, Goblin_Doom_catulpult.y)
 
 next_state_table = {
     IdleState: {RIGHT_UP: MoveState, LEFT_UP: MoveState, RIGHT_DOWN: MoveState, LEFT_DOWN: MoveState},
@@ -98,12 +97,15 @@ next_state_table = {
 class Goblin_Doom_catulpult:
 
     def __init__(self):
-        self.x, self.y = 100, 70
+        self.Health_point = 1000
+        self.x, self.y = 100, 120
         self.canvas_width = get_canvas_width()
         self.canvas_height = get_canvas_height()
         # Boy is only once created, so instance image loading is fine
         self.image = load_image("resources/images/Goblins/goblin_doom_diver_caterpult_animation_sheet.png")
         self.font = load_font('ENCR10B.TTF', 16)
+        self.w = self.image.w // 60
+        self.h = self.image.h // 2
         self.dir = 1
         self.x_velocity = 0
         self.frame = 0
@@ -112,7 +114,7 @@ class Goblin_Doom_catulpult:
         self.cur_state.enter(self, None)
 
     def get_bb(self):
-        return self.x - self.bg.window_left - 62, self.y - 38, self.x - self.bg.window_left + 61, self.y + 38
+        return self.x - self.bg.window_left - self.w//2, self.y - self.h//2, self.x - self.bg.window_left + self.w//2, self.y + self.h//2
 
     def set_background(self, bg):
         self.bg = bg
@@ -132,7 +134,10 @@ class Goblin_Doom_catulpult:
 
     def draw(self):
         self.cur_state.draw(self)
-        #self.font.draw(self.x - 60, self.y + 50, '(Time: %3.2f)' % get_time(), (255, 255, 0))
+        self.font.draw(10 + self.x - self.bg.window_left - self.w//2, 140 + self.y - self.h//2,
+                         'HP: %d' % self.Health_point,
+                         (255, 255, 0))
+
         # debug
         draw_rectangle(*self.get_bb())
 
